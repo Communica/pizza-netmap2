@@ -21,7 +21,7 @@ int CLK2_Pin = 8;   //SRCLCK and RCLK
 int MR_Pin = 7;     // Master Reset
 
 
-#define count_delay 50     // Delay between node count. Visual fx only!
+#define count_delay 0     // Delay between node count. Visual fx only!
 #define RE_PULSE 8          // Repulse - timeslots between retransmitting pulse. 
 #define MAX_NODE_COUNT 512  // if no BKTRK is connected.
 #define number_of_cores 2    // Core switches in use 
@@ -78,8 +78,8 @@ void reset(int dt) {
 // Dynamically count the number of nodes on one line. 
 
 void countNodes (int line, int * nodes) {
- 
-  int bkval = 0;
+  *nodes = 0;
+   int bkval = 0;
   //reset
   reset(count_delay);
   
@@ -90,8 +90,8 @@ void countNodes (int line, int * nodes) {
     digitalWrite(TX[line], (*nodes)%RE_PULSE == 0);
     digitalWrite(CLK[line], HIGH);
     //Counting
-    (*nodes)++;
-  } while ( int(bkval = digitalRead(RX[line])) == 0 && *nodes < MAX_NODE_COUNT );
+    
+  } while ( int(bkval = digitalRead(RX[line])) == 0 && ((*nodes)++) < MAX_NODE_COUNT );
   
   if (*nodes >= MAX_NODE_COUNT) {
      *nodes = -1; 
@@ -99,10 +99,10 @@ void countNodes (int line, int * nodes) {
   
 }
 
-int nodes;
+int nodes = 0;
 
 void loop(){
-  nodes=0;
+
 
   //CORE 1
   countNodes(0, &nodes);
@@ -110,7 +110,8 @@ void loop(){
     Serial.flush();
     printf("Core 1::\t %i nodes counted\n", nodes);
   }
-
+ 
+  delay(1000);
   // CORE 2
   countNodes(1, &nodes);
   if (Serial.available() > 0) {
