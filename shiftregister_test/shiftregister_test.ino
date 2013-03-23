@@ -1,44 +1,58 @@
 // we need fundamental FILE definitions and printf declarations
 #include <stdio.h>
 
-int SER_Pin = 13;   //pin 14 on the 75HC595
-int RCLK_Pin = 12;  //pin 12 on the 75HC595
-int SRCLK_Pin = 11; //pin 11 on the 75HC595
-int BKTRK_Pin = 10;  //last output in a shiftregister chain.
-int MR_Pin = 9; // Master Reset
+/*
+ *  Core #1
+ *
+ */
+
+int TX1_Pin = 13;   //SER (pin 14 on the 75HC595)
+int RX1_Pin = 12;   //last output in a shiftregister chain.
+int CLK1_Pin = 11;  //SRCLCK and RCLK
+
+/*
+ *  Core #2
+ * 
+ */
+int TX2_Pin = 10;   //SER (pin 14 on the 75HC595)
+int RX2_Pin = 9;    //last output in a shiftregister chain.
+int CLK2_Pin = 8;   //SRCLCK and RCLK
+
+int MR_Pin = 7;     // Master Reset
 
 
-// create a FILE structure to reference our UART output function
+#define count_delay 50     // Delay between node count. Visual fx only!
+#define RE_PULSE 8          // Repulse - timeslots between retransmitting pulse. 
+#define MAX_NODE_COUNT 512  // if no BKTRK is connected.
+#define number_of_cores 2    // Core switches in use 
+/*____________________________________________________________
+ *    END OF CONFIGURATION  
+ */
+ 
 
+/* helper arrays */
+int CLK[number_of_cores] = {CLK1_Pin, CLK2_Pin};
+int RX[number_of_cores]  = {RX1_Pin, RX2_Pin};
+int TX[number_of_cores]  = {TX1_Pin, TX2_Pin};
+
+  // To have printf
 static FILE uartout = {0} ;
-
-// create a output function
-// This works because Serial.write, although of
-// type virtual, already exists.
 static int uart_putchar (char c, FILE *stream)
 {
     Serial.write(c) ;
     return 0 ;
 }
 
-
-//How many of the shift registers - change this
-#define number_of_74hc595s 2
-// Delay between node count. Visual fx only!
-#define count_delay 100
-//Repulse - timeslots between retransmitting pulse. 
-#define RE_PULSE 8
-#define MAX_NODE_COUNT 24 // if no BKTRK is connected.
-//do not touch
-#define numOfRegisterPins number_of_74hc595s * 8
-
-boolean registers[numOfRegisterPins];
-
 void setup(){
-  pinMode(SER_Pin, OUTPUT);
-  pinMode(RCLK_Pin, OUTPUT);
-  pinMode(SRCLK_Pin, OUTPUT);
-  pinMode(BKTRK_Pin, INPUT);
+  //Core #1
+  pinMode(TX1_Pin, OUTPUT);
+  pinMode(CLK1_Pin, OUTPUT);
+  pinMode(RX1_Pin, INPUT);
+  //Core #2
+  pinMode(TX2_Pin, OUTPUT);
+  pinMode(CLK2_Pin, OUTPUT);
+  pinMode(RX2_Pin, INPUT);
+
   pinMode(MR_Pin, OUTPUT);
 
 
@@ -50,45 +64,9 @@ void setup(){
    // The uart is the standard output device STDOUT.
    stdout = &uartout ;
 
-  //reset all register pins
-  clearRegisters();
-  writeRegisters();
 }               
 
 
-//set all register pins to LOW
-void clearRegisters(){
-  for(int i = numOfRegisterPins - 1; i >=  0; i--){
-     registers[i] = LOW;
-  }
-} 
-
-
-//Set and display registers
-//Only call AFTER all values are set how you would like (slow otherwise)
-void writeRegisters(){
-
-  digitalWrite(RCLK_Pin, LOW);
-
-  for(int i = numOfRegisterPins - 1; i >=  0; i--){
-    digitalWrite(SRCLK_Pin, LOW);
-
-    int val = registers[i];
-    val = i%2;
-
-    digitalWrite(SER_Pin, val);
-    digitalWrite(SRCLK_Pin, HIGH);
-
-  }
-  digitalWrite(RCLK_Pin, HIGH);
-  
-
-}
-
-//set an individual pin HIGH or LOW
-void setRegisterPin(int index, int value){
-  registers[index] = value;
-}
 
 
 void reset(int dt) {
@@ -107,14 +85,13 @@ void countNodes (int line, int * nodes) {
   
   do {
     delay (count_delay);
-    digitalWrite(RCLK_Pin, LOW);
-    digitalWrite(SRCLK_Pin, LOW);
+    digitalWrite(CLK[line], LOW);
     //Sending pulse in an interval (@see RE_PULSE)
-    digitalWrite(SER_Pin, (*nodes)%RE_PULSE == 0);
-    digitalWrite(SRCLK_Pin, HIGH);
-    digitalWrite(RCLK_Pin, HIGH);
+    digitalWrite(TX[line], (*nodes)%RE_PULSE == 0);
+    digitalWrite(CLK[line], HIGH);
+    //Counting
     (*nodes)++;
-  } while ( int(bkval = digitalRead(BKTRK_Pin)) == 0 && *nodes < MAX_NODE_COUNT );
+  } while ( int(bkval = digitalRead(RX[line])) == 0 && *nodes < MAX_NODE_COUNT );
   
   if (*nodes >= MAX_NODE_COUNT) {
      *nodes = -1; 
@@ -122,12 +99,22 @@ void countNodes (int line, int * nodes) {
   
 }
 
+int nodes;
 
 void loop(){
-  int nodes = 0;
+  nodes=0;
+
+  //CORE 1
   countNodes(0, &nodes);
   if (Serial.available() > 0) {
     Serial.flush();
-    printf("%i nodes counted\n", nodes);
+    printf("Core 1::\t %i nodes counted\n", nodes);
   }
+
+  // CORE 2
+  countNodes(1, &nodes);
+  if (Serial.available() > 0) {
+    Serial.flush();
+    printf("Core 2::\t %i nodes counted\n", nodes);
   }
+}
