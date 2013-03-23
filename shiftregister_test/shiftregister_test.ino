@@ -25,9 +25,10 @@ static int uart_putchar (char c, FILE *stream)
 //How many of the shift registers - change this
 #define number_of_74hc595s 2
 // Delay between node count. Visual fx only!
-#define count_delay 500
+#define count_delay 100
 //Repulse - timeslots between retransmitting pulse. 
 #define RE_PULSE 8
+#define MAX_NODE_COUNT 24 // if no BKTRK is connected.
 //do not touch
 #define numOfRegisterPins number_of_74hc595s * 8
 
@@ -103,24 +104,21 @@ void countNodes (int line, int * nodes) {
   int bkval = 0;
   //reset
   reset(count_delay);
-  //Sending pulse
-  digitalWrite(RCLK_Pin, LOW);
-  digitalWrite(SRCLK_Pin, LOW);
-  digitalWrite(SER_Pin, 1);
-  digitalWrite(SRCLK_Pin, HIGH);
-  digitalWrite(RCLK_Pin, HIGH);
-  // Pushed one bit, so atleast one node:
-   *nodes = 1;
   
   do {
     delay (count_delay);
     digitalWrite(RCLK_Pin, LOW);
     digitalWrite(SRCLK_Pin, LOW);
+    //Sending pulse in an interval (@see RE_PULSE)
     digitalWrite(SER_Pin, (*nodes)%RE_PULSE == 0);
     digitalWrite(SRCLK_Pin, HIGH);
     digitalWrite(RCLK_Pin, HIGH);
     (*nodes)++;
-  } while (int(bkval = digitalRead(BKTRK_Pin)) == 0);
+  } while ( int(bkval = digitalRead(BKTRK_Pin)) == 0 && *nodes < MAX_NODE_COUNT );
+  
+  if (*nodes >= MAX_NODE_COUNT) {
+     *nodes = -1; 
+  }
   
 }
 
@@ -130,6 +128,6 @@ void loop(){
   countNodes(0, &nodes);
   if (Serial.available() > 0) {
     Serial.flush();
-    printf("%u nodes counted\n", nodes);
+    printf("%i nodes counted\n", nodes);
   }
   }
