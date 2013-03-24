@@ -8,6 +8,7 @@ To make a static file, run:
 shellprompt >  ./make-switches.py > switchlist.txt
 
 This will give a txtfile of the format:
+	
 	...
 	e69-2 on
 	e69-3 on
