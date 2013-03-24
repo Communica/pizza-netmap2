@@ -12,7 +12,7 @@ import re
 
 
 URL  = "http://www.komsys.org/pizza-netmap/src/pizza-netmap2/nms-simulator/switchlist.txt"
-COM_PORT = '/dev/tty.usbmodemfd121'
+COM_PORT = '/dev/tty.usbmodemfa131'
 
 statusmap = [ re.split("\s", string.rstrip(u)) for u in urllib2.urlopen(URL).readlines() ]
 
