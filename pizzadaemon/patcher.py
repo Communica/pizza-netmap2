@@ -29,8 +29,8 @@ def color(i):
 
 
 
-num_ports = 4
-num_cores = 2
+num_ports = pnmp.config['num_distro_ports']
+num_cores = pnmp.config['num_cores']
 
 distros_in_core = [2,3]
 

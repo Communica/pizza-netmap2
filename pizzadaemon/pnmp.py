@@ -8,6 +8,17 @@ import serial
 from serial.tools import list_ports
 import time
 
+
+
+config = {
+	'num_cores' : 2,
+	'num_distro_ports': 4,
+	'num_bits_per_shiftregister': 8
+}
+
+
+
+
 class api():
 	""" The Pizza-Netmap Network Monitoring Protocol api """
 	
@@ -105,6 +116,11 @@ class api():
 			returns: 
 				0 on success -1 on error.
 		"""
+		if len(statemap) <= 1:
+			pass #error
+
+		
+
 		pass
 
 
@@ -157,4 +173,3 @@ class api():
 		self.arduino.close()
 
 
-	

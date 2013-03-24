@@ -24,7 +24,7 @@ int MR_Pin = 7;     // Master Reset
 #define RE_PULSE 8          // Repulse - timeslots between retransmitting pulse. 
 #define MAX_NODE_COUNT 512  // if no BKTRK is connected.
 #define number_of_cores 2    // Core switches in use 
-#define n_74hc595_per_distro 2 // Shift registers per distro
+#define n_74hc595_per_distro 4 // Shift registers per distro
 #define n_shiftregister_pins 8 // Number of output pins on shiftreg.
 
 /*____________________________________________________________
