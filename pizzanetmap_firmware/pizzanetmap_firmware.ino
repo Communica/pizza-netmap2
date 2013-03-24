@@ -1,4 +1,4 @@
-
+#include "stdlib.h"
 
 /*
  *  Core #1
@@ -31,27 +31,38 @@ int MR_Pin = 7;     // Master Reset
  *    END OF CONFIGURATION  
  */
  
+ 
+ 
+/*  
+ *  Struct to keep track on how many distro switches,
+ *  and pins are connected to each core switch.
+ */
+ 
 typedef struct
 {
   int n_distros;
   int n_pins;
   boolean active;
 } _core;
-
  
- _core * core_stat;
- 
+ _core * core_stat; // Array of core stats structs.  
  
 
-
+boolean * registers; // Array of the bits that is shifted out to the leds :).
 
 /* helper arrays */
 int CLK[number_of_cores] = {CLK1_Pin, CLK2_Pin};
 int RX[number_of_cores]  = {RX1_Pin, RX2_Pin};
 int TX[number_of_cores]  = {TX1_Pin, TX2_Pin};
 
-int active_cores, bits_shifted, tot_nodes = 0;
-int nodes = 0;
+int active_cores, bits_shifted, tot_nodes, nodes = 0;
+char cb; //buffer
+
+String inputString = "";         // a string to hold incoming data
+boolean stringComplete = false;  // whether the string is complete
+
+
+
 
 /*###################################################################################
  *    
@@ -71,12 +82,17 @@ void setup(){
   //Reset
   pinMode(MR_Pin, OUTPUT);
   
+  // reserve 200 bytes for the inputString:
+  inputString.reserve(200);
+  
   // For the API to work :).
   Serial.begin(9600);
   
   // Keeping track of core-statistics. i.e numbers.
   core_stat = (_core *) malloc(number_of_cores * sizeof(_core)); 
-  
+  if (core_stat == NULL) {
+     // No Memory! 
+  }
   //Determine how many nodes connected to each core:
   tot_nodes = 0;
   active_cores = 0;
@@ -100,9 +116,30 @@ void setup(){
     }
   }
   
+  // Dynamically allocating
+  registers = (boolean *) malloc( tot_nodes * sizeof(boolean) );
+  if (registers != NULL) {
+    memset( registers, 1, sizeof(boolean) * tot_nodes );
+  }
+
+
+  
+  /*
+   * Debug
+   */   
   Serial.print(core_stat[0].n_distros);
   Serial.print(active_cores);
+  Serial.print("\nTotalt:"); 
+  Serial.print(tot_nodes);
+  Serial.print(" random-pick led: ");
+  Serial.print(registers[5]);
+  
+  registers[7] = 1;
+  registers[3] = 1;
+  registers[15] = 1;
 
+
+  writeRegisters();
 }               
 
 
@@ -134,12 +171,81 @@ void countNodes (int line, int * nodes) {
   if (*nodes >= MAX_NODE_COUNT) {
      *nodes = -1; 
   }
+  
  
 }//end countNodes
 
 
+void writeRegisters() {
+  reset(count_delay);
+  int c = 0;
+
+  
+  /* drunken Ninja tricks to get the first active core */
+  int i = 0;
+  int ninja = 0;
+  
+  for (i = tot_nodes-1; i>=0; i--) {
+     if (c < number_of_cores && core_stat[c].active){
+     
+       if( ninja > core_stat[c].n_pins ) {
+          c++;
+          ninja=0;
+       } 
+     
+      delay (count_delay);
+      digitalWrite(CLK[c], LOW);
+      //Sending pulse in an interval (@see RE_PULSE)
+      digitalWrite(TX[c], int(registers[i]));
+      digitalWrite(CLK[c], HIGH);
+      ninja++;
+     }
+  }  
+  
+  Serial.print("ninja: ");
+  Serial.print(ninja);
+  Serial.print("\n");
+  Serial.print(core_stat[0].n_pins);
+  Serial.print("\n");
+
+}
+
 
 void loop(){
+delay(100);
+// print the string when a newline arrives:
+  if (stringComplete) {
+   
+    // clear the string:
+    
+    writeRegisters();
+    inputString = "";
+    stringComplete = false;
+  }
+  
+  
+}
 
+#define WRITE_LED 13
 
+void serialEvent() {
+  int cmd, led = 0;
+  while ( Serial.available() ) {
+     cmd = Serial.parseInt(); 
+     
+     if (cmd == WRITE_LED) {
+       
+       if (Serial.available() ) {
+            led = Serial.parseInt();
+          if ( !(led >= tot_nodes) && led >= 0 ) 
+              registers[led] = 1;
+              Serial.print ("Led written: led-");
+              Serial.print(led);
+              Serial.print (" has now the value: ");
+              Serial.print(registers[led]);
+              Serial.print("\n");
+              stringComplete  = true;
+        }
+     }
+  }
 }
