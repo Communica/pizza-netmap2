@@ -4,7 +4,8 @@
 #	
 #	Python API for the PNMP protocol
 #
-import serial 
+import serial
+from serial.tools import list_ports
 import time
 
 class api():
@@ -30,6 +31,9 @@ class api():
 			print ("error, %s" % e )
 			self.clean_the_mess_up_after_you() #die
 
+
+	
+		
 
 	def mapNodes(self, nodemap):
 		""" 

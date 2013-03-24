@@ -70,11 +70,23 @@ def weGotMorePizzaAgain(switch):
 
 
 
+def list_com_ports():
+	from serial.tools import list_ports
+	
+	return "Choose serial device / COM port: \n %s" % '\n'.join(list("\t[%u] : %s" % (i, u[0]) for i,u in enumerate( list_ports.comports() )))
+	
+
 
 
 if __name__ == '__main__':
 	print ("Init")
+
+	print ( list_com_ports())
+
+
 	COM_PORT = '/dev/tty.usbmodemfd121'
+
+
 	api = pnmp.api(COM_PORT)
 
 	print ( api.getNodeCount() )

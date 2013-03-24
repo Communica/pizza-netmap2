@@ -1,5 +1,4 @@
-// we need fundamental FILE definitions and printf declarations
-#include <stdio.h>
+
 
 /*
  *  Core #1
@@ -35,14 +34,8 @@ int CLK[number_of_cores] = {CLK1_Pin, CLK2_Pin};
 int RX[number_of_cores]  = {RX1_Pin, RX2_Pin};
 int TX[number_of_cores]  = {TX1_Pin, TX2_Pin};
 
-  // To have printf
-static FILE uartout = {0} ;
-static int uart_putchar (char c, FILE *stream)
-{
-    Serial.write(c) ;
-    return 0 ;
-}
-
+uint cores, bits_shifted, tot_nodes = 0;
+int nodes = 0;
 
 
 
@@ -60,18 +53,18 @@ void setup(){
 
 
   Serial.begin(9600);
-  
-  // fill in the UART file descriptor with pointer to writer.
-   fdev_setup_stream (&uartout, uart_putchar, NULL, _FDEV_SETUP_WRITE);
 
-   // The uart is the standard output device STDOUT.
-   stdout = &uartout ;
+  //Determine how many nodes connected to each core:
+  tot_nodes = 0;
+  for (uint core = number_of_cores-1; core-- >0;;) {
+    nodes=0;
+    countNodes( core, &nodes);
+    
+    if (nodes > 0)
+      tot_nodes += nodes;
+  }
 
-
-   delay(5);
-
-
-   Serial.print( availableMemory() );
+  Serial.print(tot_nodes)
 
 }               
 
@@ -86,7 +79,7 @@ void reset(int dt) {
 
 // Dynamically count the number of nodes on one line. 
 
-void countNodes (int line, int * nodes) {
+void countNodes (uint line, int * nodes) {
   *nodes = 0;
    int bkval = 0;
   //reset
@@ -108,38 +101,30 @@ void countNodes (int line, int * nodes) {
   
 }
 
-int nodes = 0;
 
-// this function will return the number of bytes currently free in RAM
-// written by David A. Mellis
-// based on code by Rob Faludi http://www.faludi.com
-int availableMemory() {
-  int size = 2048; // Use 2048 with ATmega328
-  byte *buf;
-
-  while ((buf = (byte *) malloc(--size)) == NULL)
-    ;
-
-  free(buf);
-
-  return size;
-}
 
 void loop(){
+
+
+  while (1) {
+    if (Serial.available() > 0) {
+
+    }
+  }
 
 
   //CORE 1
   countNodes(0, &nodes);
   if (Serial.available() > 0) {
-    //Serial.flush();
-    //printf("Core 1::\t %i nodes counted\n", nodes);
+    
+    Serial.write("Core 1::\t %i nodes counted\n", nodes);
   }
  
   delay(1000);
   // CORE 2
   countNodes(1, &nodes);
   if (Serial.available() > 0) {
-    //Serial.flush();
-    //printf("Core 2::\t %i nodes counted\n", nodes);
+    
+    printf("Core 2::\t %i nodes counted\n", nodes);
   }
 }
