@@ -116,14 +116,9 @@ void setup(){
   registers = (boolean *) malloc( tot_nodes * sizeof(boolean) );
   if (registers != NULL) {
     // Setting default value on all leds.
-    memset( registers, 1, sizeof(boolean) * tot_nodes );
+    memset( registers, 0, sizeof(boolean) * tot_nodes );
   }
 
-for (int i = 0; i < 8; ++i)
-      {
-        //flipping bits.
-        registers[i] = ! registers[i];
-      }
 
   writeRegisters();
 }               

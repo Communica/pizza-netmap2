@@ -12,16 +12,16 @@ import re
 
 
 URL  = "http://www.komsys.org/pizza-netmap/src/pizza-netmap2/nms-simulator/switchlist.txt"
-COM_PORT = '/dev/tty.usbmodemfa131'
+
 
 statusmap = [ re.split("\s", string.rstrip(u)) for u in urllib2.urlopen(URL).readlines() ]
 
-arduino = pnmp.api(COM_PORT)
+
 
 
 def color(i):
 	try:
-		return ["light orange", "orange", "green", "light blue", "blue", "light green", "light brown", "brown"][i]
+		return ["dark orange", "light orange", "dark green", "light green", "dark blue", "light blue", "dark brown", "light brown"][i]
 	except:
 		print "ERROR color"
 

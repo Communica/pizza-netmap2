@@ -9,10 +9,10 @@ import re
 import string
 
 #CONFIG
-
-COM_PORT 		= 	'/dev/tty.usbmodemfa131'
-URL  			= 	"http://www.komsys.org/pizza-netmap/src/pizza-netmap2/nms-simulator/switchlist.txt"
-POLL_INTERVAL 	= 	5 #Seconds between update
+#	
+#	Config is in config.py. Edit that file.
+##
+from config import *
 
 # END CONFIG
 
