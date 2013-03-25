@@ -22,6 +22,7 @@ config = {
 class api():
 	""" The Pizza-Netmap Network Monitoring Protocol api """
 	
+	PUSHSTATE = 0xD
 
 	def __init__(self, COM_PORT, BAUD_RATE=9600):
 		
@@ -116,12 +117,17 @@ class api():
 			returns: 
 				0 on success -1 on error.
 		"""
-		if len(statemap) <= 1:
-			pass #error
+		bits = ''
 
-		
+		for switch in statemap:
+			bits += '0' if switch[1] == "off" else '1'  
 
-		pass
+		binarydata = int(bits[:8],2)
+		print "Data to arduino: %s" % bin(binarydata)
+
+		#self.arduino.write(chr(self.PUSHSTATE))
+
+		self.arduino.write( chr(binarydata) )		
 
 
 	def getState(self):

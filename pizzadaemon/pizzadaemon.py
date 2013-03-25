@@ -3,6 +3,9 @@ import pnmp
 import sys
 import time
 import random
+import urllib2
+import re
+import string
 
 
 #		 _______________________
@@ -84,10 +87,15 @@ if __name__ == '__main__':
 	print ( list_com_ports())
 
 
-	COM_PORT = '/dev/tty.usbmodemfd121'
+	COM_PORT = '/dev/tty.usbmodemfa131'
 
 
 	api = pnmp.api(COM_PORT)
 
-	print ( api.getNodeCount() )
+	URL  = "http://www.komsys.org/pizza-netmap/src/pizza-netmap2/nms-simulator/switchlist.txt"
+
+	statusmap = [ re.split("\s", string.rstrip(u)) for u in urllib2.urlopen(URL).readlines() ]
+
+	api.pushState(statusmap)
+	
 	api.clean_the_mess_up_after_you()

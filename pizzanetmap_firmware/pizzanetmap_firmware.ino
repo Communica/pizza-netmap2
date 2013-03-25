@@ -116,10 +116,11 @@ void setup(){
     }
   }
   
-  // Dynamically allocating
+  // Dynamically allocating the address space of all leds.
   registers = (boolean *) malloc( tot_nodes * sizeof(boolean) );
   if (registers != NULL) {
-    memset( registers, 1, sizeof(boolean) * tot_nodes );
+    // Setting default value on all leds.
+    memset( registers, LOW, sizeof(boolean) * tot_nodes );
   }
 
 
@@ -183,23 +184,25 @@ void writeRegisters() {
   
   /* drunken Ninja tricks to get the first active core */
   int i = 0;
+  int b = 0;
   int ninja = 0;
   
   for (i = tot_nodes-1; i>=0; i--) {
-     if (c < number_of_cores && core_stat[c].active){
+    
+     if ( b > core_stat[c].n_pins ){
+        c++;
+        b=0;
+     }
      
-       if( ninja > core_stat[c].n_pins ) {
-          c++;
-          ninja=0;
-       } 
+      
      
       delay (count_delay);
       digitalWrite(CLK[c], LOW);
       //Sending pulse in an interval (@see RE_PULSE)
       digitalWrite(TX[c], int(registers[i]));
       digitalWrite(CLK[c], HIGH);
-      ninja++;
-     }
+      b++;
+     
   }  
   
   Serial.print("ninja: ");
@@ -211,6 +214,28 @@ void writeRegisters() {
 }
 
 
+
+
+char buffer[50];
+void writeRegisters(char * data, int len) {
+  boolean  ninja[sizeof(char)];
+  
+  for (int i=0; i<len && i < tot_nodes; i++) {
+      ninja = (boolean*) data;
+      for (int k=0; k<sizeof(boolean); k++ ) {
+        registers[i++] = ninja[k]; 
+      }
+      
+    
+//     if (data[i] == (char) '1') {
+//        registers[i] = HIGH;
+//     }
+//     else 
+//       registers[i] = LOW;
+  }
+}
+
+
 void loop(){
 delay(100);
 // print the string when a newline arrives:
@@ -218,7 +243,7 @@ delay(100);
    
     // clear the string:
     
-    writeRegisters();
+    writeRegisters(inputString.toCharArray(), inputstring.length());
     inputString = "";
     stringComplete = false;
   }
@@ -227,24 +252,21 @@ delay(100);
 }
 
 #define WRITE_LED 13
+#define PUSHSTATE 13
 
 void serialEvent() {
-  int cmd, led = 0;
+  int cmd, bits = 0;
   while ( Serial.available() ) {
      cmd = Serial.parseInt(); 
      
-     if (cmd == WRITE_LED) {
+     if (cmd == PUSHSTATE) {
        
-       if (Serial.available() ) {
-            led = Serial.parseInt();
-          if ( !(led >= tot_nodes) && led >= 0 ) 
-              registers[led] = 1;
-              Serial.print ("Led written: led-");
-              Serial.print(led);
-              Serial.print (" has now the value: ");
-              Serial.print(registers[led]);
-              Serial.print("\n");
-              stringComplete  = true;
+       while (Serial.available() ) {
+            inputString += (char)Serial.read();
+            if( inputString.length() >= tot_nodes ) {
+                stringComplete  = true;
+                break;
+            }
         }
      }
   }
