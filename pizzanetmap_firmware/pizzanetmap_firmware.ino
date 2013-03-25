@@ -58,9 +58,6 @@ int TX[number_of_cores]  = {TX1_Pin, TX2_Pin};
 int active_cores, bits_shifted, tot_nodes, nodes = 0;
 char cb; //buffer
 
-String inputString = "";         // a string to hold incoming data
-boolean stringComplete = false;  // whether the string is complete
-
 
 
 
@@ -82,8 +79,7 @@ void setup(){
   //Reset
   pinMode(MR_Pin, OUTPUT);
   
-  // reserve 200 bytes for the inputString:
-  inputString.reserve(200);
+ 
   
   // For the API to work :).
   Serial.begin(9600);
@@ -120,25 +116,14 @@ void setup(){
   registers = (boolean *) malloc( tot_nodes * sizeof(boolean) );
   if (registers != NULL) {
     // Setting default value on all leds.
-    memset( registers, LOW, sizeof(boolean) * tot_nodes );
+    memset( registers, 1, sizeof(boolean) * tot_nodes );
   }
 
-
-  
-  /*
-   * Debug
-   */   
-  Serial.print(core_stat[0].n_distros);
-  Serial.print(active_cores);
-  Serial.print("\nTotalt:"); 
-  Serial.print(tot_nodes);
-  Serial.print(" random-pick led: ");
-  Serial.print(registers[5]);
-  
-  registers[7] = 1;
-  registers[3] = 1;
-  registers[15] = 1;
-
+for (int i = 0; i < 8; ++i)
+      {
+        //flipping bits.
+        registers[i] = ! registers[i];
+      }
 
   writeRegisters();
 }               
@@ -205,11 +190,7 @@ void writeRegisters() {
      
   }  
   
-  Serial.print("ninja: ");
-  Serial.print(ninja);
-  Serial.print("\n");
-  Serial.print(core_stat[0].n_pins);
-  Serial.print("\n");
+
 
 }
 
@@ -217,57 +198,63 @@ void writeRegisters() {
 
 
 char buffer[50];
-void writeRegisters(char * data, int len) {
-  boolean  ninja[sizeof(char)];
-  
-  for (int i=0; i<len && i < tot_nodes; i++) {
-      ninja = (boolean*) data;
-      for (int k=0; k<sizeof(boolean); k++ ) {
-        registers[i++] = ninja[k]; 
-      }
-      
-    
-//     if (data[i] == (char) '1') {
-//        registers[i] = HIGH;
-//     }
-//     else 
-//       registers[i] = LOW;
-  }
-}
 
+
+#define PUSHSTATE 0xF0
+#define  ENDPUSHSTATE 0xF1
+#define WRITE_LED 0xF2
+
+boolean TRANSMIT = false;
+
+int bits;
+unsigned int rb = 0; // Received bits
 
 void loop(){
-delay(100);
-// print the string when a newline arrives:
-  if (stringComplete) {
+  int cmd;
+  int bytes;
+  char led, * ledp;
+  int led_int;
+  int c;
+
+
+  if (Serial.available() > 0) {
+   cmd = Serial.read();
    
-    // clear the string:
-    
-    writeRegisters(inputString.toCharArray(), inputstring.length());
-    inputString = "";
-    stringComplete = false;
-  }
-  
-  
-}
+   if (!TRANSMIT && cmd == PUSHSTATE)
+   {
+      TRANSMIT = true;
+      rb = 0; 
+      c=0;
+   }
+   else if (TRANSMIT && cmd == ENDPUSHSTATE) 
+   {
+      TRANSMIT = false;
+      writeRegisters();
+      
+   } 
+   else if (TRANSMIT)     // Receiving chunk after chunk.
+   {
+      bits = cmd;
 
-#define WRITE_LED 13
-#define PUSHSTATE 13
-
-void serialEvent() {
-  int cmd, bits = 0;
-  while ( Serial.available() ) {
-     cmd = Serial.parseInt(); 
-     
-     if (cmd == PUSHSTATE) {
-       
-       while (Serial.available() ) {
-            inputString += (char)Serial.read();
-            if( inputString.length() >= tot_nodes ) {
-                stringComplete  = true;
-                break;
-            }
+      for (int i = 0; i < 7; ++i)
+      {
+        if ( rb < core_stat[c].n_pins ) // Filling up one core at a time.
+          registers[rb++] = (bits & (0x01 << i ) != 0);
+        else if (c < number_of_cores) 
+        {
+          c++;
+          rb = 0;
         }
-     }
+
+      }
   }
+
+
+   
+  }
+  
+  
 }
+
+
+

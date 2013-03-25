@@ -7,6 +7,7 @@
 import serial
 from serial.tools import list_ports
 import time
+import math
 
 
 
@@ -22,17 +23,21 @@ config = {
 class api():
 	""" The Pizza-Netmap Network Monitoring Protocol api """
 	
-	PUSHSTATE = 0xD
-
+	PUSHSTATE = [0xF0, 0xF1] #1 bit signaling command and not data (first)
+	WRITE_LED = [0xF2]
 	def __init__(self, COM_PORT, BAUD_RATE=9600):
 		
 		
 		try:
 			# Opening a serial connection to the arduino :).
-			self.arduino = serial.Serial(COM_PORT, BAUD_RATE, timeout=0 )
+			self.arduino = serial.Serial(COM_PORT, BAUD_RATE, bytesize=8, timeout=2 )
 			
-			print ("Done sleeping")
-			self.arduino.write("hello\n")
+			# The arduino will now reset. Lets wait for it to 
+			# finish its boot sequence :). 
+			print ("Pizza in owen...")
+			time.sleep(3)
+			print ("The Pizza is alive!")
+			#self.arduino.write("hello\n")
 			self.arduino.flush()
 			#waiting for the reset of the arduino to finish.
 			
@@ -118,16 +123,57 @@ class api():
 				0 on success -1 on error.
 		"""
 		bits = ''
+		b = 0
+
+
+		
+		
+		# Start pushstate
+		self.arduino.write(chr( self.PUSHSTATE [0] ) )
+		
+		#import pdb; pdb.set_trace()
+
+		# Sending 7bits at a time.
+		chunks = int( len(statemap) / 7 )  +  (1 if len(statemap)%7 > 0 else 0);
+		c = chunks
+		data = '0'
+		bits_sent = 0
 
 		for switch in statemap:
-			bits += '0' if switch[1] == "off" else '1'  
+			# Translating on/off to 1/0
+			bit = '0' if switch[1].lower() == "off" else '1' 
+			# Adding the bit to the chunk to be sent
+			data += bit
+			b+=1
+			
+			# Checks if we have a chunk to send
+			if (b==7):
+				self.arduino.write( chr(int(data, 2)))
+				print ( "Data to arduino: %s" % data  )
+				b=0
+				data = '0'
+				c -=1
+				bits_sent += 7
 
-		binarydata = int(bits[:8],2)
-		print "Data to arduino: %s" % bin(binarydata)
 
-		#self.arduino.write(chr(self.PUSHSTATE))
+		#last chunk:
+		if (bits_sent < len(statemap)):
+			bits_sent += len(data) - 1
+			pad = '0' * ( 8 -  ( len(statemap)-bits_sent) ) 
+			self.arduino.write( 
+				chr( int( pad + data, 2 ) ) 
+			)
+			print ( "Data to arduino: %s" % data  )
 
-		self.arduino.write( chr(binarydata) )		
+		
+		print ("Sent %d chunks and %d bits" % (chunks, bits_sent))
+
+		
+		# End of transmit	
+		self.arduino.write(chr( self.PUSHSTATE [1] ) )
+
+		
+			
 
 
 	def getState(self):

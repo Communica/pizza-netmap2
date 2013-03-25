@@ -96,6 +96,8 @@ if __name__ == '__main__':
 
 	statusmap = [ re.split("\s", string.rstrip(u)) for u in urllib2.urlopen(URL).readlines() ]
 
+	print ("Pushing state")
+	print (statusmap)
 	api.pushState(statusmap)
 	
 	api.clean_the_mess_up_after_you()
