@@ -1,9 +1,9 @@
 Bit	Pin	Farge
-A	2	dark orange
-B	1	light orange
-C	6	dark green
-D	3	light green
-E	4	dark blue blå
-F	5	light blue
-G	8	dark brown
-H	7	light brown
+1A	2	dark orange
+2B	1	light orange
+3C	6	dark green
+4D	3	light green
+5E	4	dark blue
+6F	5	light blue
+7G	8	dark brown
+8H	7	light brown

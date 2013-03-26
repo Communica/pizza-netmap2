@@ -1,36 +1,40 @@
 #include "stdlib.h"
 
-/*
- *  Core #1
- *
- */
+/* Core #1  */
+int TX1_Pin   = 13;                //SER (pin 14 on the 75HC595)
+int RX1_Pin   = 12;                //last output in a shiftregister chain.
+int CLK1_Pin  = 11;                //SRCLCK and RCLK
 
-int TX1_Pin = 13;   //SER (pin 14 on the 75HC595)
-int RX1_Pin = 12;   //last output in a shiftregister chain.
-int CLK1_Pin = 11;  //SRCLCK and RCLK
+/* Core #2 */
+int TX2_Pin   = 10;                //SER (pin 14 on the 75HC595)
+int RX2_Pin   = 9;                 //last output in a shiftregister chain.
+int CLK2_Pin  = 8;                 //SRCLCK and RCLK
 
-/*
- *  Core #2
- * 
- */
-int TX2_Pin = 10;   //SER (pin 14 on the 75HC595)
-int RX2_Pin = 9;    //last output in a shiftregister chain.
-int CLK2_Pin = 8;   //SRCLCK and RCLK
-
-int MR_Pin = 7;     // Master Reset
+int MR_Pin    = 7;                 // Master Reset
 
 
-#define count_delay 0     // Delay between node count. Visual fx only!
-#define RE_PULSE 8          // Repulse - timeslots between retransmitting pulse. 
-#define MAX_NODE_COUNT 512  // if no BKTRK is connected.
-#define number_of_cores 2    // Core switches in use 
-#define n_74hc595_per_distro 4 // Shift registers per distro
-#define n_shiftregister_pins 8 // Number of output pins on shiftreg.
+#define count_delay           0    // Delay between node count. Visual fx only!
+#define RE_PULSE              8    // Repulse - timeslots between retransmitting 
+#                                  //   pulse. @see countNodes 
+#define MAX_NODE_COUNT        512  // If no RX is connected, prevents infinity loop, 
+#                                  //but also limits supported nodes per core.
+#define number_of_cores       2    // Core switches in use 
+#define n_74hc595_per_distro  4    // Shift registers per distro
+#define n_shiftregister_pins  8    // Number of output pins on shiftreg.
 
 /*____________________________________________________________
  *    END OF CONFIGURATION  
  */
+
+/*
+ *  BEGIN Protocol
+ */
  
+#define   PUSHSTATE           0xF0      // Start byte for stream of bits 
+                                        //   transmission 
+#define   ENDPUSHSTATE        0xF1      // Stop byte. 
+#define   WRITE_LED           0xF2      //
+#define   GET_NETWORK_GRAPH   0xF3      // Getting stats from this pizzanetmap.
  
  
 /*  
@@ -59,13 +63,18 @@ int active_cores, bits_shifted, tot_nodes, nodes = 0;
 char cb; //buffer
 
 
+/* functions */
+void writeRegisters();
+void reset(int dt);
+void countNodes (int line, int * nodes);
 
 
-/*###################################################################################
+
+/*#############################################################################
  *    
  *    SETUP
  *
- *##################################################################################*/
+ *###########################################################################*/
 
 void setup(){
   //Core #1
@@ -79,31 +88,32 @@ void setup(){
   //Reset
   pinMode(MR_Pin, OUTPUT);
   
- 
   
   // For the API to work :).
   Serial.begin(9600);
   
+  
   // Keeping track of core-statistics. i.e numbers.
   core_stat = (_core *) malloc(number_of_cores * sizeof(_core)); 
-  if (core_stat == NULL) {
-     // No Memory! 
-  }
+  if (core_stat == NULL) { /* No Memory! */ }
+
   //Determine how many nodes connected to each core:
   tot_nodes = 0;
   active_cores = 0;
 
-  // 1, 2,3,4,5,6,7,8,9,10,11,12
+
+  // 1,2,3,4,5,6,7,8,9,10,11,12
   for (int c=0; c < number_of_cores; c++) {
+    
     nodes=0;
     countNodes( c, &nodes);
     
     if (nodes > 0) {
-       core_stat[c].n_distros = nodes / (n_shiftregister_pins * n_74hc595_per_distro);
-       core_stat[c].n_pins    = nodes;  
-       core_stat[c].active    = true;
-       tot_nodes += nodes;
-       active_cores += 1;   
+       core_stat[c].n_distros   = nodes / (n_shiftregister_pins * n_74hc595_per_distro);
+       core_stat[c].n_pins      = nodes;  
+       core_stat[c].active      = true;
+       tot_nodes               += nodes;
+       active_cores            += 1;   
     } 
     else { // Error occured
        core_stat[c].n_distros   = 0; 
@@ -112,6 +122,7 @@ void setup(){
     }
   }
   
+
   // Dynamically allocating the address space of all leds.
   registers = (boolean *) malloc( tot_nodes * sizeof(boolean) );
   if (registers != NULL) {
@@ -159,97 +170,79 @@ void countNodes (int line, int * nodes) {
 
 void writeRegisters() {
   reset(count_delay);
-  int c = 0;
+  int c = 0;  // Core index
+  int i = 0;  // bits index on a total basis
+  int b = 0;  // bits index on a per core basis
+  
+  for (i = tot_nodes-1; i>=0; i--) 
+  {
 
-  
-  /* drunken Ninja tricks to get the first active core */
-  int i = 0;
-  int b = 0;
-  int ninja = 0;
-  
-  for (i = tot_nodes-1; i>=0; i--) {
-    
-     if ( b > core_stat[c].n_pins ){
-        c++;
-        b=0;
-     }
-     
-      
-     
-      delay (count_delay);
-      digitalWrite(CLK[c], LOW);
-      //Sending pulse in an interval (@see RE_PULSE)
-      digitalWrite(TX[c], int(registers[i]));
-      digitalWrite(CLK[c], HIGH);
-      b++;
-     
+    if ( b > core_stat[c].n_pins ){
+      c++;
+      b=0;
+    } 
+
+    // Shifting one bit: Setting Clk low, write data, Clk High
+    digitalWrite(CLK[c], LOW);
+    delay (count_delay);
+    digitalWrite(TX[c], int(registers[i]));
+    digitalWrite(CLK[c], HIGH);
+    b++; 
   }  
-  
-
 
 }
 
 
 
+/*#############################################################################
+ *    
+ *   L
+ *    O  
+ *     O
+ *      P
+ *###########################################################################*/
 
-char buffer[50];
 
-
-#define PUSHSTATE 0xF0
-#define  ENDPUSHSTATE 0xF1
-#define WRITE_LED 0xF2
-
-boolean TRANSMIT = false;
-
-int bits;
-unsigned int rb = 0; // Received bits
+boolean RECV_BITS  = false;  // RECV_BITS state flag
+unsigned int rb   = 0;      // Received bits
 
 void loop(){
-  int cmd;
-  int bytes;
-  char led, * ledp;
-  int led_int;
-  int c;
+  int cmd;                  //  cmd/data) buffer.
+  int bits;                 //  CNAME --> cmd
+  int c;                    //  Core index
 
 
   if (Serial.available() > 0) {
-   cmd = Serial.read();
+    cmd = Serial.read();
    
-   if (!TRANSMIT && cmd == PUSHSTATE)
-   {
-      TRANSMIT = true;
-      rb = 0; 
-      c=0;
-   }
-   else if (TRANSMIT && cmd == ENDPUSHSTATE) 
-   {
-      TRANSMIT = false;
-      writeRegisters();
-      
-   } 
-   else if (TRANSMIT)     // Receiving chunk after chunk.
-   {
-      bits = cmd;
+     if         (cmd == PUSHSTATE) {     
+       RECV_BITS    = true;
+       rb           = 0; 
+       c            = 0;
+       bits_shifted = 0;
+     }else if  (cmd == ENDPUSHSTATE) {
+       RECV_BITS = false;
+       writeRegisters();  
+     }else if  (RECV_BITS)  {   // Receiving chunk after chunk.
 
-      for (int i = 0; i < 7; ++i)
-      {
-        if ( rb < core_stat[c].n_pins ) // Filling up one core at a time.
-          registers[rb++] = ((bits & (0x01 << i )) != 0);
-        else if (c < number_of_cores) 
-        {
-          c++;
-          rb = 0;
+       bits = cmd;
+
+       for (int i = 0; i < 7; ++i) {
+         // Filling up one core at a time, bit for bit.
+        if ( rb < core_stat[c].n_pins )  {
+           registers[rb++] = ((bits & (0x01 << i )) != 0);
+          bits_shifted++;
         }
+        else if (c < number_of_cores) {
+         c++;
+         rb = 0;
+       }//end else if
+     }//end for
 
-      }
-  }
+    } //end if
+  } // end serial if
+} //end loop
 
-
-   
-  }
-  
-  
-}
 
 
 

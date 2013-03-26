@@ -10,20 +10,23 @@ import urllib2
 import string
 import re
 
+from config import *
+#URL  = "http://www.komsys.org/pizza-netmap/src/pizza-netmap2/nms-simulator/switchlist.txt"
 
-URL  = "http://www.komsys.org/pizza-netmap/src/pizza-netmap2/nms-simulator/switchlist.txt"
+statusmap = [ re.split(SWITCH_DELIM, string.rstrip(u)) for u in urllib2.urlopen(URL).readlines() ]
 
-
-statusmap = [ re.split("\s", string.rstrip(u)) for u in urllib2.urlopen(URL).readlines() ]
-
-
-
-
-def color(i):
+BOLD = '\033[1m'
+ENDC = '\033[0m'
+def color(i ,binary=False):
+	if binary and not COLOR_SUPPORT:
+		return ''
+	elif binary:
+		return ['\033[91m' 	 , '\033[93m',    '\033[92m',	'\033[82m',		'\033[94m',	  '\033[096m', '\033[090m', 	'\033[097m' ][i]
 	try:
 		return ["dark orange", "light orange", "dark green", "light green", "dark blue", "light blue", "dark brown", "light brown"][i]
 	except:
 		print "ERROR color"
+	return ''
 
 
 
@@ -41,7 +44,7 @@ def patchPins(lvl, c,d,p,n):
 	while pin <= 8:
 		if (n >= len(statusmap)):
 			return n,res
-		res += "%s%s	%u.%u.%u.%u	(%s)\n" % ("\t"*lvl, statusmap[n-1][0], c,d,p,pin, color(pin-1))
+		res += "%s%s	%u.%u.%u.%u	(%s%s%s%s)\n" % ("\t"*lvl, statusmap[n-1][0], c,d,p,pin, BOLD, color(pin-1, True), color(pin-1), ENDC)
 		pin += 1
 		n += 1
 	return n, res
@@ -88,13 +91,5 @@ def patchCores(lvl=0,c=1,d=1,p=1,n=1 ):
 	return res
 
 print ( patchCores())
-	
-
-
-
-
-
-
-
 
 

@@ -25,6 +25,8 @@ class api():
 	
 	PUSHSTATE = [0xF0, 0xF1] #1 bit signaling command and not data (first)
 	WRITE_LED = [0xF2]
+	GET_NETWORK_GRAPH = [0xF3]
+
 	def __init__(self, COM_PORT, BAUD_RATE=9600):
 		
 		
@@ -47,9 +49,6 @@ class api():
 		except Exception as e: 
 			print ("error, %s" % e )
 			self.clean_the_mess_up_after_you() #die
-
-
-	
 		
 
 	def mapNodes(self, nodemap):
