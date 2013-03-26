@@ -34,7 +34,7 @@ def list_com_ports():
 if __name__ == '__main__':
 	print ("Init")
 
-	#print ( list_com_ports())
+	print ( list_com_ports())
 
 	api = pnmp.api(COM_PORT)
 

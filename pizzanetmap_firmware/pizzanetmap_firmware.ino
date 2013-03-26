@@ -234,7 +234,7 @@ void loop(){
       for (int i = 0; i < 7; ++i)
       {
         if ( rb < core_stat[c].n_pins ) // Filling up one core at a time.
-          registers[rb++] = (bits & (0x01 << i ) != 0);
+          registers[rb++] = ((bits & (0x01 << i )) != 0);
         else if (c < number_of_cores) 
         {
           c++;
