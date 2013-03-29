@@ -82,13 +82,25 @@ _____________PRESENTS______________________________
 	Creative Commons Share-alike
 """
 
+from config import *
 
 def list_com_ports():
 	from serial.tools import list_ports
 	return "Choose serial device / COM port: \n %s" % '\n'.join(list("\t[%u] : %s" % (i, u[0]) for i,u in enumerate( list_ports.comports() )))
-	
 
 
+def deprecated_list(statusmap):
+	""" to sort things out. """
+	return [[s['name'], s['status']] for s in statusmap]
+		
+
+
+def fetch_status():
+	""" This function is responsible for fetching a statuslist 
+	of the real world network nodes to be monitored"""
+	switches = re.finditer(SWITCH_PATTERN, urllib2.urlopen(URL).read())
+	switches = sorted([ s.groupdict() for s in switches ], key=lambda s: int(s['row'])*4+int(s['col']) )
+	return deprecated_list(switches)
 
 if __name__ == '__main__':
 	print ( LOGO )
@@ -96,7 +108,7 @@ if __name__ == '__main__':
 
 	print ("Init")
 	print ( list_com_ports())
-	from config import *
+	
 
 	api = pnmp.api(COM_PORT)
 
@@ -119,7 +131,7 @@ if __name__ == '__main__':
 
 	try:
 		while 1:	
-			statusmap = [ re.split(SWITCH_DELIM, string.rstrip(u)) for u in urllib2.urlopen(URL).readlines() ]
+			statusmap = fetch_status()
 			print ("Pushing state")
 			print (statusmap)
 			api.pushState(statusmap)

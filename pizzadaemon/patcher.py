@@ -9,6 +9,7 @@ import pnmp
 import urllib2
 import string
 import re
+import pizzadaemon
 
 LOGO = """
   ______                              _            
@@ -73,7 +74,7 @@ _____________PRESENTS______________________________
 from config import *
 #URL  = "http://www.komsys.org/pizza-netmap/src/pizza-netmap2/nms-simulator/switchlist.txt"
 
-statusmap = [ re.split(SWITCH_DELIM, string.rstrip(u)) for u in urllib2.urlopen(URL).readlines() ]
+statusmap = pizzadaemon.fetch_status()
 
 BOLD = '\033[1m'
 ENDC = '\033[0m'
@@ -104,7 +105,7 @@ def patchPins(lvl, c,d,p,n):
 	while pin <= 8:
 		if (n >= len(statusmap)):
 			return n,res
-		res += "%s%s	%u.%u.%u.%u	(%s%s%s%s)\n" % ("\t"*lvl, statusmap[n-1][0], c,d,p,pin, BOLD, color(pin-1, True), color(pin-1), ENDC)
+		res += "%s%s	%u.%u.%u.%u	(%s%s%s%s)\n" % ("\t"*lvl, statusmap[n-1][0], c,d,p,pin, BOLD if COLOR_SUPPORT else '', color(pin-1, True), color(pin-1), ENDC if COLOR_SUPPORT else '')
 		pin += 1
 		n += 1
 	return n, res
