@@ -3,21 +3,31 @@ pizza-netmap2
 
 ![A netmap in a pizzabox!](http://technocake.net/screenshots/pizzamap.jpg)
 
+
+
+# So, Pizzahueh? What is it again? 
+
+## Pizzanetmap is an open-source toy for network operators to monitor their network with the help of Arduino, some shiftregister magic and LEDs
+
 Pizza net map is a computer network monitoring device, inside a pizza box. 
+It is modular, both hardware-wise and software-wise. Meaning it doesn`t tie to just one particular network setup. 
+###Pizzanetmap can build em all.
 
-We want to make a miniature model of The Gathering network. Participants access the network through switches and access points. We will monitor these and represent their status using LED lights on the model.
+## Background
 
-Our challenge is to make a modular system that is not limited to one application, but is flexible and can be applied to other networks, not necessarily computer networks.
+We wanted to make a miniature model of [The Gathering](http://gathering.org) network. Participants access the network through switches and access points. We would then monitor these and represent their status using LED lights on the model.
 
-We achieve this by using an Arduino and shift-registers to control an unlimited amount of LEDs and layouts. 
+Our challenge was to make a modular system that is not limited to one application, but is flexible and can be applied to other systems, not necessarily computer networks.
 
-Our software communicates with an Arduino through a USB connection. A computer checks with the existing Network Management System to see which network access switches are online or not. Based on this data the computer turns a corresponding LED on or off.
+We achieved this by using an Arduino and shift-registers to control an unlimited amount of LEDs and layouts. 
+
+Our software running on a computer, communicates with an Arduino through a USB connection. It checks with the existing Network Management System to see which network access switches are online or not. Based on this data the pizzanetmap turns a corresponding LED on or off.
 
 
 #Installation Instructions
 
 ## Physical
-Here is a video showing the instructions on how to set it up:
+Here is a video showing the instructions on how to set it up (in norwegian):
 
 on Vimeo:
 https://vimeo.com/62769705
